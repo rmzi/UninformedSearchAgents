@@ -1,6 +1,9 @@
 __author__ = "Ramzi Abdoch"
 __email__ = "raa2148@columbia.edu"
 
+from path_node import Path_Node
+import Queue
+
 import argparse
 parser = argparse.ArgumentParser(description='Robot Path Planning | HW 1 | COMS 4701')
 parser.add_argument('-bfs', action="store_true", default=False , help="Run BFS on the map")
@@ -39,6 +42,16 @@ def isValidState(state):
 	else:
 		return False
 
+def success(node):
+
+	print "Success!"
+	exit()
+
+def failure(node):
+
+	print "Failure."
+	exit()
+
 def possibleActions(state):
 	# Testing possible moves from state
 	actions = []
@@ -50,11 +63,35 @@ def possibleActions(state):
 
 	# Try UP
 	test_state = map(sum, zip(state,up))
-	print test_state
 
 	if isValidState(test_state):
+		test_state.append("UP")
 		actions.append(test_state)
-		print actions
+
+	# Try LEFT
+	test_state = map(sum, zip(state,left))
+
+	if isValidState(test_state):
+		test_state.append("LEFT")
+		actions.append(test_state)
+
+	# Try DOWN
+	test_state = map(sum, zip(state,down))
+
+	if isValidState(test_state):
+		test_state.append("DOWN")
+		actions.append(test_state)
+
+	# Try RIGHT
+	test_state = map(sum, zip(state,right))
+
+	if isValidState(test_state):
+		test_state.append("RIGHT")
+		actions.append(test_state)
+
+	print "Possible actions from [%d,%d]" % (state[0], state[1])
+	print actions
+	return actions
 
 # Reading of map given and all other initializations
 try:
@@ -75,9 +112,21 @@ print "The arena of size "+ str(len(arena)) + "x" + str(len(arena[0]))
 print "\n".join(arena)
 
 if results.bfs:
-	# Call / write your BFS algorithm
-	root = findInitialState(arena)
-	possibleActions(root)
+	# BFS algorithm
+	root_state = findInitialState(arena)
+	
+	# Instantiate FIFO Queue Frontier
+	frontier = Queue.Queue()
+	explored = []
+
+	# Add starting node
+	node = Path_Node(root_state, 0)
+	frontier.put(node)
+
+	frontier = possibleActions(node.state)
+
+
+
 	print "BFS algorithm called"  # comment out later
 
 if results.dfs:
@@ -87,11 +136,3 @@ if results.dfs:
 if results.astar:
 	# Call / write your A* algorithm
 	print "A* algorithm called"  # comment out later
-
-"""
-class Path_Node:
-	state, parent, action, path_cost = [0,0], None, None, 0
-
-	def __init__(self, data):
-		self
-"""
