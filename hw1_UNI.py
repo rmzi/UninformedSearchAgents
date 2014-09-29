@@ -1,5 +1,5 @@
-__author__ = "Ilambharathi Kanniah"
-__email__ = "ik2342@columbia.edu"
+__author__ = "Ramzi Abdoch"
+__email__ = "raa2148@columbia.edu"
 
 import argparse
 parser = argparse.ArgumentParser(description='Robot Path Planning | HW 1 | COMS 4701')
@@ -23,6 +23,13 @@ try:
     with open(results.m) as f:
         arena = f.read()
         arena = arena.split("\n")[:-1]
+        width = len(arena)
+        height = len(arena[0])
+        for i in range(0,width):
+        	for j in range(0,height):
+        		if arena[i][j] == "s":
+        			print "i: %d, j: %d" % (i, j)
+        
 except:
 	print "Error in reading the arena file."
 	exit()
@@ -35,6 +42,7 @@ print "\n".join(arena)
 
 if results.bfs:
 	# Call / write your BFS algorithm
+
 	print "BFS algorithm called"  # comment out later
 
 if results.dfs:
