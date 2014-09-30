@@ -5,8 +5,4 @@ class Path_Node:
 		self.state = state
 		self.parent = parent
 		self.action = action
-		self.path_cost = action
-
-	def __init__(self, state, cost):
-		self.state = state
-		self.cost = cost
+		self.path_cost = cost

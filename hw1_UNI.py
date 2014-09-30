@@ -3,6 +3,8 @@ __email__ = "raa2148@columbia.edu"
 
 from path_node import Path_Node
 import Queue
+from UserString import MutableString
+import sys
 
 import argparse
 parser = argparse.ArgumentParser(description='Robot Path Planning | HW 1 | COMS 4701')
@@ -23,8 +25,8 @@ if results.all:
 
 def findInitialState(arena):
 	# Iterate over rows of the map until "s" appears and return that state
-	for j in range(0,height):
-        	for i in range(0,width):
+	for i in range(0,width-1):
+        	for j in range(0,height-1):
         		if arena[j][i] == "s":
         			print "Start state @ i: %d, j: %d" % (i, j)
         			startState = [i,j]
@@ -32,7 +34,6 @@ def findInitialState(arena):
         			
 def isValidState(state):
 	# Check if the state is within the map
-	print arena[state[0]][state[1]]
 	if state[0] > -1 and state[0] < width and state[1] > -1 and state[1] < height:
 		# If the state is not an obstacle, it's valid
 		if arena[state[0]][state[1]] != "o":
@@ -42,15 +43,9 @@ def isValidState(state):
 	else:
 		return False
 
-def success(node):
-
-	print "Success!"
-	exit()
-
-def failure(node):
-
-	print "Failure."
-	exit()
+def isGoal(state):
+	if arena[state[0]][state[1]] == "g":
+		return True
 
 def possibleActions(state):
 	# Testing possible moves from state
@@ -89,9 +84,80 @@ def possibleActions(state):
 		test_state.append("RIGHT")
 		actions.append(test_state)
 
-	print "Possible actions from [%d,%d]" % (state[0], state[1])
-	print actions
 	return actions
+
+def printPath(node, arena):
+
+	path = []
+
+	while node.path_cost > 0:
+		path.append(node.state)
+		node = node.parent
+
+	print "Solution:"
+
+	print path
+
+	for i in range(0,width-1):
+		for j in range(0,height-1):
+			if arena[i][j] == "g":
+				sys.stdout.write("g")
+			elif [i,j] in path:
+				sys.stdout.write("*")
+			else:
+				sys.stdout.write(arena[i][j])
+		sys.stdout.write("\n")
+
+def success(node, explored):
+	# Output Map w/ Path
+	print "Success, in %d moves!" % node.path_cost
+	#print explored
+	printPath(node, arena)
+	exit()
+
+def failure():
+	# Output Sadface
+	print "Failure."
+	exit()
+
+def bfs(arena):
+	# BFS algorithm
+	root_state = findInitialState(arena)
+	node = Path_Node(root_state, None, None, 0)
+
+	if isGoal(node.state):
+		success(node, [])
+
+	# Instantiate FIFO Queue Frontier
+	frontier = Queue.Queue()
+	explored = []
+
+	# Add starting node
+	frontier.put(node)
+
+	# Do While Loop
+	while True:
+		if frontier.empty():
+			print "Empty Frontier"
+			failure()
+
+		node = frontier.get()
+		explored.append(node.state)
+
+		actions = possibleActions(node.state)
+
+		for action in actions:
+			child = Path_Node([action[0],action[1]], node, action[2], node.path_cost + 1)
+
+			if not(child.state in explored or child.state in frontier.queue):
+				#print "test"
+				if isGoal(child.state):
+					success(child, explored)
+				else:
+					frontier.put(child)
+
+def dfs(arena):
+	pass
 
 # Reading of map given and all other initializations
 try:
@@ -112,21 +178,7 @@ print "The arena of size "+ str(len(arena)) + "x" + str(len(arena[0]))
 print "\n".join(arena)
 
 if results.bfs:
-	# BFS algorithm
-	root_state = findInitialState(arena)
-	
-	# Instantiate FIFO Queue Frontier
-	frontier = Queue.Queue()
-	explored = []
-
-	# Add starting node
-	node = Path_Node(root_state, 0)
-	frontier.put(node)
-
-	frontier = possibleActions(node.state)
-
-
-
+	bfs(arena)
 	print "BFS algorithm called"  # comment out later
 
 if results.dfs:
