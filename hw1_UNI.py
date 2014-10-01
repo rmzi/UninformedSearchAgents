@@ -1,8 +1,7 @@
 __author__ = "Ramzi Abdoch"
 __email__ = "raa2148@columbia.edu"
 
-from path_node import Path_Node
-import Queue
+from path_node import PathNode
 from UserString import MutableString
 import sys
 
@@ -16,6 +15,10 @@ parser.add_argument('-m', action="store", help="Map filename")
 
 results = parser.parse_args()
 
+# Explored/Frontier History dict, global
+explored = {}
+frontier_history = {}
+
 if results.m=="" or not(results.all or results.astar or results.bfs or results.dfs):
 	print "Check the parameters : >> python hw1_UNI.py -h"
 	exit()
@@ -23,33 +26,70 @@ if results.m=="" or not(results.all or results.astar or results.bfs or results.d
 if results.all:
 	results.bfs = results.dfs = results.astar = True
 
-def findInitialState(arena):
-	# Iterate over rows of the map until "s" appears and return that state
-	for i in range(0,width-1):
-        	for j in range(0,height-1):
-        		if arena[j][i] == "s":
-        			print "Start state @ i: %d, j: %d" % (i, j)
-        			startState = [i,j]
-        			return startState
-        			
+# Check dict if node has been explored
+def hasBeenExplored(state):
+	key = str(state[0]) + "," + str(state[1])
+	if explored.get(key) != None:
+		return True
+	else:
+		return False
+
+# Check dict if node has been in the frontier
+def hasBeenInFH(state):
+	key = str(state[0]) + "," + str(state[1])
+	if frontier_history.get(key) != None:
+		return True
+	else:
+		return False
+
 def isValidState(state):
 	# Check if the state is within the map
 	if state[0] > -1 and state[0] < width and state[1] > -1 and state[1] < height:
-		# If the state is not an obstacle, it's valid
+		# If the state is not an obstacle
 		if arena[state[0]][state[1]] != "o":
-			return True
+			# If the state has not been explored
+			if not(hasBeenExplored(state)):
+				return True
+			else:
+				return False
 		else:
 			return False
 	else:
 		return False
 
+def addToExplored(state):
+	key = str(state[0]) + "," + str(state[1])
+	if (explored.get(key) != None):
+		explored[key] = explored.get(key) + 1
+	else:
+		explored[key] = 1
+
+def addToFH(state):
+	key = str(state[0]) + "," + str(state[1])
+	if (frontier_history.get(key) != None):
+		frontier_history[key] = frontier_history.get(key) + 1
+	else:
+		frontier_history[key] = 1
+
+def findInitialState(arena):
+	# Iterate over rows of the map until "s" appears and return that state
+	for i in range(0,width-1):
+        	for j in range(0,height-1):
+        		if isValidState([i,j]):
+	        		if arena[i][j] == "s":
+	        			print "Start state @ i: %d, j: %d" % (i, j)
+	        			startState = [i,j]
+	        			return startState
+
 def isGoal(state):
 	if arena[state[0]][state[1]] == "g":
 		return True
 
-def possibleActions(state):
+def possibleActions(node):
 	# Testing possible moves from state
 	actions = []
+	state = node.state
+	cost = node.path_cost + 1
 
 	up = [0,-1]
 	left = [-1,0]
@@ -61,20 +101,7 @@ def possibleActions(state):
 
 	if isValidState(test_state):
 		test_state.append("UP")
-		actions.append(test_state)
-
-	# Try LEFT
-	test_state = map(sum, zip(state,left))
-
-	if isValidState(test_state):
-		test_state.append("LEFT")
-		actions.append(test_state)
-
-	# Try DOWN
-	test_state = map(sum, zip(state,down))
-
-	if isValidState(test_state):
-		test_state.append("DOWN")
+		test_state.append(cost)
 		actions.append(test_state)
 
 	# Try RIGHT
@@ -82,6 +109,23 @@ def possibleActions(state):
 
 	if isValidState(test_state):
 		test_state.append("RIGHT")
+		test_state.append(cost)
+		actions.append(test_state)
+
+	# Try DOWN
+	test_state = map(sum, zip(state,down))
+
+	if isValidState(test_state):
+		test_state.append("DOWN")
+		test_state.append(cost)
+		actions.append(test_state)
+
+	# Try LEFT
+	test_state = map(sum, zip(state,left))
+
+	if isValidState(test_state):
+		test_state.append("LEFT")
+		test_state.append(cost)
 		actions.append(test_state)
 
 	return actions
@@ -111,50 +155,50 @@ def printPath(node, arena):
 def success(node, explored):
 	# Output Map w/ Path
 	print "Success, in %d moves!" % node.path_cost
-	#print explored
 	printPath(node, arena)
 	exit()
 
 def failure():
 	# Output Sadface
-	print "Failure."
+	print "Failure. :("
 	exit()
 
 def bfs(arena):
 	# BFS algorithm
 	root_state = findInitialState(arena)
-	node = Path_Node(root_state, None, None, 0)
+	node = PathNode(root_state, None, None, 0)
 
 	if isGoal(node.state):
 		success(node, [])
 
 	# Instantiate FIFO Queue Frontier
-	frontier = Queue.Queue()
-	explored = []
+	frontier = []
 
 	# Add starting node
-	frontier.put(node)
+	frontier.append(node)
+	addToFH(node.state)
 
 	# Do While Loop
 	while True:
-		if frontier.empty():
+		if len(frontier) < 1:
 			print "Empty Frontier"
 			failure()
 
-		node = frontier.get()
-		explored.append(node.state)
+		# Pop the first element from the queue
+		node = frontier.pop(0)
+		addToExplored(node.state)
 
-		actions = possibleActions(node.state)
+		# Iterate over possible actions
+		for action in possibleActions(node):
+			# Create child node from action[x,y,action,cost]
+			child = PathNode([action[0],action[1]], node, action[2], action[3])
 
-		for action in actions:
-			child = Path_Node([action[0],action[1]], node, action[2], node.path_cost + 1)
-
-			if not(child.state in explored or child.state in frontier.queue):
-				#print "test"
+			if not(hasBeenInFH(child.state) or hasBeenExplored(child.state) == True):
 				if isGoal(child.state):
 					success(child, explored)
 				else:
-					frontier.put(child)
+					frontier.append(child)
+					addToFH(child.state)
 
 def dfs(arena):
 	pass
@@ -182,7 +226,7 @@ if results.bfs:
 	print "BFS algorithm called"  # comment out later
 
 if results.dfs:
-	# Call / write your DFS algorithm
+	dfs(arena)
 	print "DFS algorithm called"  # comment out later
 
 if results.astar:
